@@ -181,9 +181,13 @@ $("#donut").innerHTML='<div class="donut"><svg viewBox="0 0 120 120" width="140"
 const now=new Date(),last=[];for(let k=5;k>=0;k--){const d=new Date(now.getFullYear(),now.getMonth()-k,1);last.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"))}
 const dat=last.map(m=>({m,i:sum(all.filter(x=>mk(x.date)===m),"in"),o:sum(all.filter(x=>mk(x.date)===m),"out")}));
 const mx=Math.max(1,...dat.map(d=>Math.max(d.i,d.o)));
-let sv='<svg viewBox="0 0 300 150" width="100%" role="img" aria-label="Einnahmen und Ausgaben der letzten 6 Monate">';
-dat.forEach((d,j)=>{const x=j*50+6,hi=d.i/mx*105,ho=d.o/mx*105;
-sv+='<rect x="'+x+'" y="'+(115-hi)+'" width="18" height="'+hi+'" rx="5" fill="var(--in)"/><rect x="'+(x+20)+'" y="'+(115-ho)+'" width="18" height="'+ho+'" rx="5" fill="var(--out)"/><text x="'+(x+19)+'" y="136" text-anchor="middle" font-size="10" fill="#8b9098">'+ml(d.m).split(" ")[0]+"</text>"});
+const fm=n=>n>=10000?(n/1000).toLocaleString("de-DE",{maximumFractionDigits:1})+"k":Math.round(n).toLocaleString("de-DE");
+let sv='<svg viewBox="0 0 330 160" width="100%" role="img" aria-label="Einnahmen und Ausgaben der letzten 6 Monate">';
+dat.forEach((d,j)=>{const x=j*55+2,hi=d.i/mx*95,ho=d.o/mx*95,net=d.i-d.o,nc=net>0?"var(--in)":net<0?"var(--out)":"#8b9098";
+sv+='<rect x="'+x+'" y="'+(125-hi)+'" width="24" height="'+hi+'" rx="6" fill="var(--in)"/><rect x="'+(x+27)+'" y="'+(125-ho)+'" width="24" height="'+ho+'" rx="6" fill="var(--out)"/>';
+if(d.i>0)sv+='<text x="'+(x+12)+'" y="'+(121-hi)+'" text-anchor="middle" font-size="9" font-weight="600" fill="var(--in)">'+fm(d.i)+"</text>";
+if(d.o>0)sv+='<text x="'+(x+39)+'" y="'+(121-ho)+'" text-anchor="middle" font-size="9" font-weight="600" fill="var(--out)">'+fm(d.o)+"</text>";
+sv+='<text x="'+(x+25.5)+'" y="146" text-anchor="middle" font-size="11" font-weight="600" fill="'+nc+'">'+ml(d.m).split(" ")[0]+"</text>"});
 $("#bars").innerHTML=sv+'</svg><div class="leg" style="margin-top:8px"><span><span><i style="background:var(--in)"></i>Einnahmen</span><span><i style="background:var(--out)"></i>Ausgaben</span></span></div>';
 $("#list").innerHTML=f.length?f.map(i=>'<div class="item"><div class="m" data-e="'+(i.src||i.id)+'"><b>'+esc(i.note||i.cat)+'</b><small>'+esc(i.cat)+" · "+new Date(i.date+"T12:00").toLocaleDateString("de-DE")+(i.rep&&i.rep!=="once"?" · "+RL[i.rep]:"")+(i.nb?" · ohne Kontostand":"")+'</small></div><span class="amt '+i.type+'">'+(i.type==="in"?"+":"−")+eur(i.amt)+'</span><button class="x" data-d="'+(i.src||i.id)+'" aria-label="Löschen">×</button></div>').join(""):'<p class="empty">Noch keine Einträge. Trage auf der Seite „Eintragen“ deinen ersten Betrag ein.</p>';
 }
