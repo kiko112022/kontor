@@ -61,9 +61,16 @@ summary{cursor:pointer;font-weight:600}
 .tabs button.on{color:#0e0f11;font-weight:600}
 @media(prefers-reduced-motion:reduce){.ind,.tabs button{transition:none}}
 :focus-visible{outline:3px solid #8fb3ff;outline-offset:2px}
+#splash{position:fixed;inset:0;z-index:50;background:#0e0f11;display:grid;place-items:center;pointer-events:none;animation:spOut 1s ease forwards}
+#splash .sp-in{display:grid;justify-items:center;gap:14px;animation:spIn .5s cubic-bezier(.2,.8,.2,1) both}
+#splash b{font-size:22px;letter-spacing:.04em;color:#eceef0;font-weight:600}
+@keyframes spIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
+@keyframes spOut{0%,62%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}
+@media(prefers-reduced-motion:reduce){#splash{display:none}}
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true"><div class="sp-in"><svg width="128" height="128" viewBox="0 0 1024 1024"><rect x="150" y="150" width="724" height="724" rx="190" fill="#17191c" stroke="#2a2e34" stroke-width="8"/><rect x="250" y="520" width="130" height="220" rx="65" fill="#eceef0"/><rect x="447" y="330" width="130" height="410" rx="65" fill="#6fd1b1"/><rect x="644" y="430" width="130" height="310" rx="65" fill="#f08f9b"/></svg><b>Kontor</b></div></div>
 <main>
 
 <section class="page" id="p-add">
