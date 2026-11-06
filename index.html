@@ -67,6 +67,23 @@ summary{cursor:pointer;font-weight:600}
 @keyframes spIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
 @keyframes spOut{0%,62%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}
 @media(prefers-reduced-motion:reduce){#splash{display:none}}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;min-width:0}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:42px;padding:0 18px;border-radius:999px;border:1px solid var(--bd);background:#23262b;color:var(--mu);font-weight:600;white-space:nowrap;cursor:pointer}
+.chip.on{background:var(--lt);color:#0e0f11;border-color:var(--lt)}
+.hrows{display:grid}
+.hr{display:grid;grid-template-columns:84px minmax(0,1fr);gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--bd)}
+.hr:first-child{border-top:0}
+.hr.sep{border-top:1.5px dashed #3a4048;margin-top:4px}
+.hn{font-weight:600;font-size:14px;line-height:1.2}
+.hr.tt .hn{font-weight:700}
+.hbs{display:grid;gap:5px;min-width:0}
+.bl{display:flex;align-items:center;gap:8px;min-width:0}
+.bb{display:block;height:12px;border-radius:999px;flex:none}
+.bl span{font-size:13px;font-weight:600;white-space:nowrap}
+.st{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;margin-top:14px}
+.st small{display:block;color:var(--mu)}
+.st b{font-size:17px}
 </style>
 </head>
 <body>
@@ -95,16 +112,17 @@ summary{cursor:pointer;font-weight:600}
 
 <section class="page" id="p-stat" hidden>
 <h1>Statistik</h1>
-<select class="mon" aria-label="Zeitraum"></select>
-<div class="card"><small>Saldo im Zeitraum</small><div class="bal" id="bal">0,00 €</div>
+<div class="chips mon" role="group" aria-label="Zeitraum"></div>
+<div class="card"><small id="per">Saldo im Zeitraum</small><div class="bal" id="bal">0,00 €</div>
 <div class="two sum" style="margin-top:14px"><div class="i"><small>Einnahmen</small><b id="sin">0,00 €</b></div><div class="o"><small>Ausgaben</small><b id="sout">0,00 €</b></div></div></div>
 <div class="card"><h2>Ausgaben nach Kategorie</h2><div id="donut"></div></div>
-<div class="card"><h2>Letzte 6 Monate</h2><div id="bars"></div></div>
+<div class="card"><h2 id="bh">Letzte 6 Monate</h2><div id="bars"></div></div>
 </section>
 
 <section class="page" id="p-hist" hidden>
 <h1>Verlauf</h1>
-<select class="mon" aria-label="Zeitraum"></select>
+<div class="chips mon" role="group" aria-label="Zeitraum"></div>
+<div class="card"><h2>Kontostand im Verlauf</h2><div id="line"></div></div>
 <div class="card" id="list"></div>
 <details class="card"><summary>Sicherung</summary>
 <p class="mu" style="font-size:14px">Deine Daten liegen nur auf diesem Gerät. Kopiere sie als Text, um sie zu sichern oder auf ein anderes Gerät zu bringen.</p>
@@ -120,7 +138,7 @@ summary{cursor:pointer;font-weight:600}
 const $=s=>document.querySelector(s);
 const CATS={out:["Miete","Lebensmittel","Mobilität","Freizeit","Gesundheit","Versicherung","Kleidung","Sonstiges"],in:["Gehalt","Nebenverdienst","Erstattung","Sonstiges"]};
 const COL=["#eceef0","#8fb3ff","#e8b86b","#6fd1b1","#c59bf0","#f08f9b","#7cc4e8","#6c727a"];
-let items=[],type="out",editId=null,month="all";
+let items=[],type="out",editId=null,sel=[];
 try{items=JSON.parse(localStorage.getItem("hb")||"[]")}catch(e){items=[]}
 let start=0;try{start=parseFloat(localStorage.getItem("hb_start"))||0}catch(e){}
 function save(){try{localStorage.setItem("hb",JSON.stringify(items))}catch(e){}}
@@ -164,12 +182,14 @@ save();resetForm();$("#fmsg").textContent=was?"Eintrag geändert.":"Eintrag gesp
 
 function render(){
 const all=expand();const ms=[...new Set(all.map(i=>mk(i.date)).concat(mk(today())))].sort().reverse();
-if(month!=="all"&&!ms.includes(month))month="all";
-const opts='<option value="all">Gesamter Zeitraum</option>'+ms.map(m=>'<option value="'+m+'"'+(m===month?" selected":"")+">"+ml(m)+"</option>").join("");
-document.querySelectorAll(".mon").forEach(s=>s.innerHTML=opts);
+sel=sel.filter(m=>ms.includes(m));
+const chips='<button class="chip'+(sel.length?"":" on")+'" data-m="all">Alle</button>'+ms.map(m=>'<button class="chip'+(sel.includes(m)?" on":"")+'" data-m="'+m+'">'+ml(m)+"</button>").join("");
+document.querySelectorAll(".mon").forEach(s=>{const sl=s.scrollLeft;s.innerHTML=chips;s.scrollLeft=sl});
+$("#per").textContent=sel.length?"Saldo: "+sel.slice().sort().map(m=>ml(m)).join(", "):"Saldo über alle Monate";
+$("#bh").textContent=sel.length===1?"Wochen im Monat":sel.length===2?"Monatshälften":sel.length?"Ausgewählte Monate":"Letzte 6 Monate";
 const sum=(a,t)=>a.filter(i=>i.type===t).reduce((s,i)=>s+i.amt,0);
 const bi=all.filter(i=>!i.nb);const t=start+sum(bi,"in")-sum(bi,"out");$("#tot").textContent=eur(t);$("#tot").style.color=t<0?"var(--out)":"var(--tx)";
-const f=(month==="all"?all:all.filter(i=>mk(i.date)===month)).slice().sort((a,b)=>b.date.localeCompare(a.date));
+const f=(sel.length?all.filter(i=>sel.includes(mk(i.date))):all).slice().sort((a,b)=>b.date.localeCompare(a.date));
 const si=sum(f,"in"),so=sum(f,"out"),b=si-so;
 $("#sin").textContent=eur(si);$("#sout").textContent=eur(so);$("#bal").textContent=eur(b);$("#bal").style.color=b<0?"var(--out)":"var(--tx)";
 const by={};f.filter(i=>i.type==="out").forEach(i=>by[i.cat]=(by[i.cat]||0)+i.amt);
@@ -179,19 +199,61 @@ const C=2*Math.PI*40;let off=0,seg="";
 ks.forEach((k,j)=>{const l=by[k]/so*C;seg+='<circle cx="60" cy="60" r="40" fill="none" stroke="'+COL[j%COL.length]+'" stroke-width="18" stroke-dasharray="'+l+" "+(C-l)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 60 60)"/>';off+=l});
 $("#donut").innerHTML='<div class="donut"><svg viewBox="0 0 120 120" width="140" height="140" role="img" aria-label="Ausgaben nach Kategorie">'+seg+'</svg><div class="leg">'+ks.map((k,j)=>'<span><span><i style="background:'+COL[j%COL.length]+'"></i>'+esc(k)+"</span><b>"+eur(by[k])+"</b></span>").join("")+"</div></div>"}
 const now=new Date(),last=[];for(let k=5;k>=0;k--){const d=new Date(now.getFullYear(),now.getMonth()-k,1);last.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"))}
-const dat=last.map(m=>({m,i:sum(all.filter(x=>mk(x.date)===m),"in"),o:sum(all.filter(x=>mk(x.date)===m),"out")}));
-const mx=Math.max(1,...dat.map(d=>Math.max(d.i,d.o)));
-const fm=n=>n>=10000?(n/1000).toLocaleString("de-DE",{maximumFractionDigits:1})+"k":Math.round(n).toLocaleString("de-DE");
-let sv='<svg viewBox="0 0 330 160" width="100%" role="img" aria-label="Einnahmen und Ausgaben der letzten 6 Monate">';
-dat.forEach((d,j)=>{const x=j*55+2,hi=d.i/mx*95,ho=d.o/mx*95,net=d.i-d.o,nc=net>0?"var(--in)":net<0?"var(--out)":"#8b9098";
-sv+='<rect x="'+x+'" y="'+(125-hi)+'" width="24" height="'+hi+'" rx="6" fill="var(--in)"/><rect x="'+(x+27)+'" y="'+(125-ho)+'" width="24" height="'+ho+'" rx="6" fill="var(--out)"/>';
-if(d.i>0)sv+='<text x="'+(x+12)+'" y="'+(121-hi)+'" text-anchor="middle" font-size="9" font-weight="600" fill="var(--in)">'+fm(d.i)+"</text>";
-if(d.o>0)sv+='<text x="'+(x+39)+'" y="'+(121-ho)+'" text-anchor="middle" font-size="9" font-weight="600" fill="var(--out)">'+fm(d.o)+"</text>";
-sv+='<text x="'+(x+25.5)+'" y="146" text-anchor="middle" font-size="11" font-weight="600" fill="'+nc+'">'+ml(d.m).split(" ")[0]+"</text>"});
-$("#bars").innerHTML=sv+'</svg><div class="leg" style="margin-top:8px"><span><span><i style="background:var(--in)"></i>Einnahmen</span><span><i style="background:var(--out)"></i>Ausgaben</span></span></div>';
+const bm=sel.length?sel.slice().sort():last;
+const gran=sel.length===1?"w":sel.length===2?"h":"m";
+const sumIn=(f,t)=>sum(all.filter(f),t);
+const mon=m=>({i:sumIn(x=>mk(x.date)===m,"in"),o:sumIn(x=>mk(x.date)===m,"out")});
+let rows=[];
+if(gran==="m"){rows=bm.map(m=>Object.assign({lb:ml(m).split(" ")[0]},mon(m)));
+if(sel.length>=3)rows.push({lb:"Gesamt",t:1,br:1,i:rows.reduce((s,d)=>s+d.i,0),o:rows.reduce((s,d)=>s+d.o,0)})}
+else{bm.forEach((m,mi)=>{const p=m.split("-"),ld=new Date(+p[0],+p[1],0).getDate();
+const cuts=gran==="w"?[[1,7],[8,14],[15,21],[22,ld]]:[[1,15],[16,ld]];
+const parts=cuts.map((c,k)=>{const inR=x=>mk(x.date)===m&&+x.date.slice(8,10)>=c[0]&&+x.date.slice(8,10)<=c[1];
+return {lb:gran==="w"?"Woche "+(k+1):ml(m).split(" ")[0]+" "+c[0]+"–"+c[1],i:sumIn(inR,"in"),o:sumIn(inR,"out")}});
+const tot=Object.assign({lb:gran==="w"?"Monat":ml(m).split(" ")[0]+" gesamt",t:1},mon(m));
+if(gran==="w"){tot.br=1;rows.push(...parts,tot)}else{if(mi>0)tot.br=1;rows.push(tot,...parts)}})}
+const mx=Math.max(1,...rows.filter(d=>!d.t).map(d=>Math.max(d.i,d.o))),mxT=Math.max(1,...rows.filter(d=>d.t).map(d=>Math.max(d.i,d.o)));
+const e0=n=>Math.round(n).toLocaleString("de-DE")+" €";
+const bar=(v,sc,c)=>'<div class="bl"><i class="bb" style="width:'+(v>0?Math.max(2,v/sc*68):0)+'%;background:var('+c+')"></i><span style="color:var('+c+')">'+(v>0?e0(v):"")+"</span></div>";
+$("#bars").innerHTML='<div class="hrows">'+rows.map(d=>{const sc=d.t?mxT:mx,net=d.i-d.o,nc=net>0?"var(--in)":net<0?"var(--out)":"var(--mu)";
+return '<div class="hr'+(d.br?" sep":"")+(d.t?" tt":"")+'"><div class="hn" style="color:'+nc+'">'+esc(d.lb)+'</div><div class="hbs">'+((d.i>0||d.o>0)?bar(d.i,sc,"--in")+bar(d.o,sc,"--out"):'<span class="mu">–</span>')+"</div></div>"}).join("")+'</div><div class="leg" style="margin-top:12px"><span><span><i style="background:var(--in)"></i>Einnahmen</span><span><i style="background:var(--out)"></i>Ausgaben</span></span></div>';
+(function(){
+const pad=n=>String(n).padStart(2,"0"),keyOf=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+if(!all.length){$("#line").innerHTML='<p class="empty">Noch keine Einträge.</p>';return}
+const bal=all.filter(i=>!i.nb).sort((x,y)=>x.date.localeCompare(y.date));
+const td=today();let a,b;
+if(sel.length){const s2=sel.slice().sort(),l=s2[s2.length-1].split("-");a=s2[0]+"-01";b=l[0]+"-"+l[1]+"-"+pad(new Date(+l[0],+l[1],0).getDate())}
+else{a=all.map(i=>i.date).sort()[0];b=td}
+if(b<a)b=a;
+let ds=new Date(a+"T12:00");const de=new Date(b+"T12:00");
+if((de-ds)/864e5>1100)ds=new Date(de.getFullYear(),de.getMonth(),de.getDate()-1100,12);
+const a2=keyOf(ds),D=Math.round((de-ds)/864e5)+1;
+let run=start,pi=0;
+while(pi<bal.length&&bal[pi].date<a2){run+=(bal[pi].type==="in"?1:-1)*bal[pi].amt;pi++}
+const v0=run,pts=[];
+for(let k=0;k<D;k++){const key=keyOf(new Date(ds.getFullYear(),ds.getMonth(),ds.getDate()+k,12));
+while(pi<bal.length&&bal[pi].date<=key){run+=(bal[pi].type==="in"?1:-1)*bal[pi].amt;pi++}
+pts.push(run)}
+const vmin=Math.min(v0,...pts),vmax=Math.max(v0,...pts),ve=pts[D-1];
+const lo=vmin===vmax?vmin-1:vmin,hi=vmin===vmax?vmax+1:vmax;
+const step=Math.max(1,Math.ceil(D/120)),idx=[];
+for(let k=0;k<D;k+=step)idx.push(k);
+if(idx[idx.length-1]!==D-1)idx.push(D-1);
+const X=j=>idx.length>1?8+j/(idx.length-1)*314:165,Y=v=>24+(hi-v)/(hi-lo)*106;
+const P=idx.map((k,j)=>X(j).toFixed(1)+","+Y(pts[k]).toFixed(1));
+let sv='<svg viewBox="0 0 330 160" width="100%" role="img" aria-label="Kontostand im Zeitverlauf"><defs><linearGradient id="lg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#eceef0" stop-opacity=".28"/><stop offset="1" stop-color="#eceef0" stop-opacity="0"/></linearGradient></defs>';
+if(lo<0&&hi>0)sv+='<line x1="8" x2="322" y1="'+Y(0)+'" y2="'+Y(0)+'" stroke="#8b9098" stroke-width="1" stroke-dasharray="3 4"/><text x="8" y="'+(Y(0)-4)+'" font-size="9" fill="#8b9098">0</text>';
+if(idx.length>1)sv+='<path d="M'+P[0]+" L"+P.join(" L")+" L322,130 L8,130 Z"+'" fill="url(#lg)"/><polyline points="'+P.join(" ")+'" fill="none" stroke="#eceef0" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+sv+='<circle cx="'+X(idx.length-1)+'" cy="'+Y(ve)+'" r="5" fill="'+(ve<0?"var(--out)":"var(--in)")+'"/>';
+const fd=k=>new Date(ds.getFullYear(),ds.getMonth(),ds.getDate()+k,12).toLocaleDateString("de-DE",{day:"numeric",month:"short",year:"2-digit"});
+sv+='<text x="8" y="152" font-size="10" fill="#8b9098">'+fd(0)+'</text><text x="322" y="152" font-size="10" text-anchor="end" fill="#8b9098">'+fd(D-1)+"</text></svg>";
+const st=(l,v,c)=>'<div><small>'+l+'</small><b'+(c?' style="color:'+c+'"':"")+'>'+eur(v)+"</b></div>";
+$("#line").innerHTML=sv+'<div class="st">'+st("Stand zu Beginn",v0)+st("Stand am Ende",ve,ve<0?"var(--out)":"var(--in)")+st("Tiefster Stand",vmin)+st("Höchster Stand",vmax)+'</div><p class="mu" style="font-size:13px;margin:12px 0 0">Einträge mit „Kontostand nicht ändern“ sind nicht enthalten.</p>';
+})();
+
 $("#list").innerHTML=f.length?f.map(i=>'<div class="item"><div class="m" data-e="'+(i.src||i.id)+'"><b>'+esc(i.note||i.cat)+'</b><small>'+esc(i.cat)+" · "+new Date(i.date+"T12:00").toLocaleDateString("de-DE")+(i.rep&&i.rep!=="once"?" · "+RL[i.rep]:"")+(i.nb?" · ohne Kontostand":"")+'</small></div><span class="amt '+i.type+'">'+(i.type==="in"?"+":"−")+eur(i.amt)+'</span><button class="x" data-d="'+(i.src||i.id)+'" aria-label="Löschen">×</button></div>').join(""):'<p class="empty">Noch keine Einträge. Trage auf der Seite „Eintragen“ deinen ersten Betrag ein.</p>';
 }
-document.querySelectorAll(".mon").forEach(s=>s.onchange=e=>{month=e.target.value;render()});
+document.querySelectorAll(".mon").forEach(s=>s.onclick=e=>{const b=e.target.closest("[data-m]");if(!b)return;const m=b.dataset.m;if(m==="all")sel=[];else sel=sel.includes(m)?sel.filter(x=>x!==m):sel.concat(m);render()});
 $("#list").onclick=e=>{
 const d=e.target.closest("[data-d]"),m=e.target.closest("[data-e]");
 if(d){items=items.filter(i=>i.id!==d.dataset.d);save();render()}
