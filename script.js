@@ -90,10 +90,11 @@ else{a=all.map(i=>i.date).sort()[0];b=td}
 if(b<a)b=a;
 let ds=new Date(a+"T12:00");const de=new Date(b+"T12:00");
 if((de-ds)/864e5>1100)ds=new Date(de.getFullYear(),de.getMonth(),de.getDate()-1100,12);
-const a2=keyOf(ds),D=Math.round((de-ds)/864e5)+1;
+const a2=keyOf(ds);let D=Math.round((de-ds)/864e5)+1;
 let run=start,pi=0;
 while(pi<bal.length&&bal[pi].date<a2){run+=(bal[pi].type==="in"?1:-1)*bal[pi].amt;pi++}
 const v0=run,pts=[];
+ds=new Date(ds.getFullYear(),ds.getMonth(),ds.getDate()-1,12);D++;
 for(let k=0;k<D;k++){const key=keyOf(new Date(ds.getFullYear(),ds.getMonth(),ds.getDate()+k,12));
 while(pi<bal.length&&bal[pi].date<=key){run+=(bal[pi].type==="in"?1:-1)*bal[pi].amt;pi++}
 pts.push(run)}
